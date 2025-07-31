@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Search Cases - Court Data Fetcher{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <!-- Header -->
+        <div class="text-center mb-5">
+            <h1 class="display-4 fw-bold text-primary mb-3">
+                <i class="fas fa-search me-3"></i>
+                Court Case Search
+            </h1>
+            <p class="lead text-muted">
+                Search for case details and orders from the Delhi High Court
+            </p>
+            <div class="alert alert-info" role="alert">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Target Court:</strong> Delhi High Court (https://delhihighcourt.nic.in/)
+            </div>
+        </div>
+
+        <!-- Search Form -->
+        <div class="card">
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('search_case') }}" id="searchForm">
+                    <div class="row g-3">
+                        <!-- Case Type -->
+                        <div class="col-md-4">
+                            <label for="case_type" class="form-label fw-bold">
+                                <i class="fas fa-file-alt me-2"></i>Case Type *
+                            </label>
+                            <select class="form-select" id="case_type" name="case_type" required>
+                                <option value="">Select Case Type</option>
+                                {% for case_type in case_types %}
+                                <option value="{{ case_type }}">{{ case_type }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Choose the type of case</div>
+                        </div>
+
+                        <!-- Case Number -->
+                        <div class="col-md-4">
+                            <label for="case_number" class="form-label fw-bold">
+                                <i class="fas fa-hashtag me-2"></i>Case Number *
+                            </label>
+                            <input type="text" class="form-control" id="case_number" name="case_number" 
+                                   placeholder="e.g., 1234" required>
+                            <div class="form-text">Enter the case number</div>
+                        </div>
+
+                        <!-- Filing Year -->
+                        <div class="col-md-4">
+                            <label for="filing_year" class="form-label fw-bold">
+                                <i class="fas fa-calendar me-2"></i>Filing Year *
+                            </label>
+                            <select class="form-select" id="filing_year" name="filing_year" required>
+                                <option value="">Select Year</option>
+                                {% for year in range(2024, 1999, -1) %}
+                                <option value="{{ year }}">{{ year }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Year when case was filed</div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg px-5">
+                            <i class="fas fa-search me-2"></i>
+                            Search Case
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Information Cards -->
+        <div class="row mt-5 g-4">
+            <div class="col-md-4">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <div class="text-primary mb-3">
+                            <i class="fas fa-balance-scale fa-3x"></i>
+                        </div>
+                        <h5 class="card-title">Case Details</h5>
+                        <p class="card-text text-muted">
+                            Get comprehensive case information including parties, filing dates, and status.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <div class="text-success mb-3">
+                            <i class="fas fa-file-pdf fa-3x"></i>
+                        </div>
+                        <h5 class="card-title">Orders & Judgments</h5>
+                        <p class="card-text text-muted">
+                            Access latest court orders and judgments with PDF download capability.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <div class="text-info mb-3">
+                            <i class="fas fa-database fa-3x"></i>
+                        </div>
+                        <h5 class="card-title">Data Storage</h5>
+                        <p class="card-text text-muted">
+                            All searches and results are logged in our secure database for future reference.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CAPTCHA Information -->
+        <div class="alert alert-warning mt-4" role="alert">
+            <h6 class="alert-heading">
+                <i class="fas fa-shield-alt me-2"></i>
+                CAPTCHA Handling
+            </h6>
+            <p class="mb-0">
+                Our system uses advanced techniques to handle potential CAPTCHAs:
+                <ul class="mb-0 mt-2">
+                    <li>Session management to reduce CAPTCHA frequency</li>
+                    <li>Request spacing to avoid triggering anti-bot measures</li>
+                    <li>Realistic browser user agents</li>
+                    <li>Manual intervention fallback if needed</li>
+                </ul>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Form validation
+    const form = document.getElementById('searchForm');
+    const caseType = document.getElementById('case_type');
+    const caseNumber = document.getElementById('case_number');
+    const filingYear = document.getElementById('filing_year');
+
+    // Real-time validation
+    caseNumber.addEventListener('input', function() {
+        const value = this.value.trim();
+        if (value && !/^\d+$/.test(value)) {
+            this.setCustomValidity('Please enter only numbers');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+
+    // Form submission enhancement
+    form.addEventListener('submit', function(e) {
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        // Show loading state
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Searching...';
+        submitBtn.disabled = true;
+        
+        // Re-enable after 10 seconds (fallback)
+        setTimeout(function() {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }, 10000);
+    });
+
+    // Auto-focus on first field
+    caseType.focus();
+});
+</script>
+{% endblock %} 

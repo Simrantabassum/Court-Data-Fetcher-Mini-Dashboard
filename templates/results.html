@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block title %}Search Results - Court Data Fetcher{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="mb-1">
+                    <i class="fas fa-search me-2"></i>
+                    Search Results
+                </h2>
+                <p class="text-muted mb-0">
+                    Case: {{ case_query.case_type }}/{{ case_query.case_number }}/{{ case_query.filing_year }}
+                </p>
+            </div>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i>
+                New Search
+            </a>
+        </div>
+
+        <!-- Case Details Card -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-balance-scale me-2"></i>
+                    Case Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tbody>
+                                <tr>
+                                    <td class="fw-bold text-muted">Case Title:</td>
+                                    <td>{{ case_details.case_title or 'Not available' }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted">Petitioner:</td>
+                                    <td>{{ case_details.petitioner or 'Not available' }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted">Respondent:</td>
+                                    <td>{{ case_details.respondent or 'Not available' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tbody>
+                                <tr>
+                                    <td class="fw-bold text-muted">Filing Date:</td>
+                                    <td>
+                                        {% if case_details.filing_date %}
+                                            {{ case_details.filing_date.strftime('%d/%m/%Y') }}
+                                        {% else %}
+                                            Not available
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted">Next Hearing:</td>
+                                    <td>
+                                        {% if case_details.next_hearing_date %}
+                                            {{ case_details.next_hearing_date.strftime('%d/%m/%Y') }}
+                                        {% else %}
+                                            Not available
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted">Case Status:</td>
+                                    <td>
+                                        {% if case_details.case_status %}
+                                            <span class="badge bg-info">{{ case_details.case_status }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Not available</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Orders and Judgments -->
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-pdf me-2"></i>
+                    Orders & Judgments
+                    <span class="badge bg-light text-dark ms-2">{{ orders|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if orders %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Title</th>
+                                    <th>Description</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in orders %}
+                                <tr>
+                                    <td>
+                                        {% if order.order_date %}
+                                            {{ order.order_date.strftime('%d/%m/%Y') }}
+                                        {% else %}
+                                            <span class="text-muted">Not available</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'primary' if order.order_type == 'Order' else 'success' }}">
+                                            {{ order.order_type }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <strong>{{ order.order_title or 'Untitled' }}</strong>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ order.order_description or 'No description available' }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        {% if order.pdf_url %}
+                                            <a href="{{ url_for('download_pdf', order_id=order.id) }}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-download me-1"></i>
+                                                Download PDF
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">No PDF available</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-file-pdf fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Orders Found</h5>
+                        <p class="text-muted">No orders or judgments are available for this case.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Search Information -->
+        <div class="card mt-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Search Information
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-1">
+                            <strong>Search Timestamp:</strong> 
+                            {{ case_query.search_timestamp.strftime('%d/%m/%Y %H:%M:%S') }}
+                        </p>
+                        <p class="mb-1">
+                            <strong>Search Status:</strong> 
+                            <span class="badge bg-{{ 'success' if case_query.status == 'success' else 'danger' }}">
+                                {{ case_query.status.title() }}
+                            </span>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1">
+                            <strong>Case Type:</strong> {{ case_query.case_type }}
+                        </p>
+                        <p class="mb-1">
+                            <strong>Case Number:</strong> {{ case_query.case_number }}
+                        </p>
+                        <p class="mb-1">
+                            <strong>Filing Year:</strong> {{ case_query.filing_year }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="text-center mt-4">
+            <a href="{{ url_for('index') }}" class="btn btn-primary me-2">
+                <i class="fas fa-search me-2"></i>
+                New Search
+            </a>
+            <a href="{{ url_for('stats') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-chart-bar me-2"></i>
+                View Statistics
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click tracking for download buttons
+    const downloadButtons = document.querySelectorAll('a[href*="/download/"]');
+    downloadButtons.forEach(function(button) {
+        button.addEventListener('click', function() {
+            // Show loading state
+            const originalText = this.innerHTML;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Downloading...';
+            this.disabled = true;
+            
+            // Re-enable after 5 seconds (fallback)
+            setTimeout(function() {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }, 5000);
+        });
+    });
+
+    // Auto-refresh page every 30 seconds to check for new orders
+    setTimeout(function() {
+        if (confirm('Would you like to refresh the page to check for new orders?')) {
+            location.reload();
+        }
+    }, 30000);
+});
+</script>
+{% endblock %} 
